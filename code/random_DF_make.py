@@ -4,6 +4,7 @@ import pickle
 import os
 
 pickle_file = "../data/parking_dataframe.pkl"
+pd.set_option('display.max_columns', None)
 
 # pickle 파일이 존재하는 경우에만 데이터프레임 로드
 if os.path.exists(pickle_file):
@@ -11,7 +12,27 @@ if os.path.exists(pickle_file):
 	df = pickle.load(open(pickle_file, "rb"))
 	df['date'] = df["date"].dt.strftime("%Y-%m-%d %H")
 	df['total_parking'] = df.iloc[:, 2:].sum(axis=1)
-	print(df['total_parking'].describe())
+	df['date_hour'] = df['date'].str[-2:]
+	df_grouped = df.groupby(['date_hour', 'day']).agg({'total_parking': 'mean'}).reset_index()
+
+	result_dict = {}
+	day_list = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+	for i, day in enumerate(df_grouped['day'].unique()):
+		day_data = df_grouped[df_grouped['day'] == day]
+		day_str = day_list[i]  # 요일을 문자열로 변환
+
+		day_dict = {
+			'date_hour': day_data['date_hour'].tolist(),
+			'total_parking': day_data['total_parking'].tolist()
+			}
+		result_dict[day_str] = day_dict
+
+	import json
+
+	# Dump data to a JSON file
+	filename = "../data/data.json"
+	with open(filename, "w", encoding='utf-8') as file:
+		json.dump(result_dict, file, ensure_ascii=False)
 else:
 	db_config = {
 		'user': 'root',

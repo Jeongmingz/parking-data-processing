@@ -2,11 +2,6 @@ import random
 import mysql.connector
 from datetime import datetime, timedelta
 
-def generate_random_binary_list(length):
-	binary_list = []
-	for _ in range(length):
-		binary_list.append(random.choice([0, 1]))
-	return binary_list
 
 db_config = {
 	'user': 'root',
@@ -20,6 +15,13 @@ conn = mysql.connector.connect(**db_config)
 
 # 커서 생성
 cursor = conn.cursor()
+
+query = f"DELETE FROM parking_data_per_5min"
+cursor.execute(query)
+
+# 변경 사항을 커밋
+conn.commit()
+
 query = "INSERT INTO parking_data_per_5min (day, date, parking_slot_1"
 placeholders = "%s, %s, %s"
 for i in range(2, 24):
@@ -29,6 +31,36 @@ query += f") VALUES ({placeholders})"
 
 start_time = datetime.now()
 start_time -= timedelta(minutes=40)
+
+def generate_random_binary_list(length):
+	if start_time.weekday() >= 5:
+		if start_time.hour < 7 or start_time.hour > 21:
+			binary_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		else:
+			binary_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	else:
+		if start_time.hour < 5 or start_time.hour > 21:
+			binary_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		elif start_time.hour == 5:
+			binary_list = [0, 0, 0, 0, 0, 0, 0, 0]
+		elif start_time.hour == 6:
+			binary_list = [0, 0, 0, 0, 0, 0]
+		elif start_time.hour == 7:
+			binary_list = [0, 0, 0, 0]
+		elif start_time.hour == 8:
+			binary_list = [0, 0]
+		elif 9 <= start_time.hour <= 18:
+			binary_list = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		else:
+			binary_list = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+	for _ in range(length):
+		if len(binary_list) == length:
+			break
+		binary_list.append(random.choice([0, 1]))
+	return binary_list
+
+
 while 1:
 	time_offset = timedelta(minutes=5)
 	start_time += time_offset
@@ -39,7 +71,7 @@ while 1:
 
 	conn.commit()
 
-	if start_time.day == 27:
+	if start_time.day == 29:
 		break
 
 # 연결 및 커서 닫기
